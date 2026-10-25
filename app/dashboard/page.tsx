@@ -180,16 +180,16 @@ function DashboardOverviewContent() {
     });
 
     return (
-      <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="dashboard-overview space-y-6 max-w-[1480px] mx-auto">
         {/* Top Header & AI Summary Trigger */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#203044] pb-5">
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-2xl font-bold text-[#F8FAFC] tracking-tight">
-                Executive Operations Dashboard
+                Executive Overview
               </h1>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-400 border border-emerald-800/60 font-semibold uppercase">
-                Admin Master
+                Admin
               </span>
             </div>
             <p className="text-xs text-[#94A3B8] mt-1">
@@ -228,7 +228,7 @@ function DashboardOverviewContent() {
               {aiSummary.map((item, i) => (
                 <li key={i} className="flex items-start gap-2.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] mt-1.5 shrink-0" />
-                  <span className="leading-relaxed text-[#F8FAFC]" dangerouslySetInnerHTML={{ __html: item }} />
+                  <span className="leading-relaxed text-[#F8FAFC]">{item}</span>
                 </li>
               ))}
             </ul>
@@ -269,7 +269,7 @@ function DashboardOverviewContent() {
         )}
 
         {/* 6 EXECUTIVE KPI CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
             title="Total Headcount"
             value={kpis.totalEmployees || 0}
@@ -287,7 +287,7 @@ function DashboardOverviewContent() {
             icon={CheckCircle2}
             variant="emerald"
             chart={
-              <div className="w-8 h-8">
+              <div className="w-14 h-14">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                   <path
                     className="text-[#111E30]"
@@ -317,6 +317,14 @@ function DashboardOverviewContent() {
             tag={Number(kpis.latePercentage) > 0 ? 'Warning' : 'Optimal'}
             icon={Clock}
             variant={Number(kpis.latePercentage) > 0 ? 'amber' : 'emerald'}
+            chart={
+              <div className="h-14 w-14">
+                <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+                  <path stroke="#142435" strokeWidth="3.5" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path stroke={Number(kpis.latePercentage) > 0 ? '#f59e0b' : '#22c55e'} strokeDasharray={`${Math.min(Number(kpis.latePercentage) || 0, 100)}, 100`} strokeWidth="3.5" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+              </div>
+            }
           />
 
           <StatCard
@@ -328,23 +336,6 @@ function DashboardOverviewContent() {
             variant="emerald"
           />
 
-          <StatCard
-            title="Average Salary"
-            value={`PKR ${avgSalary.toLocaleString()}`}
-            subtitle="Per Employee Avg"
-            tag="Ledger Avg"
-            icon={DollarSign}
-            variant="blue"
-          />
-
-          <StatCard
-            title="Attrition YTD"
-            value={`${kpis.attritionRate || 0}%`}
-            subtitle="Retention Status"
-            tag="100% Retained"
-            icon={Activity}
-            variant="emerald"
-          />
         </div>
 
         {/* CHARTS & BREAKDOWN ROW */}
@@ -423,7 +414,7 @@ function DashboardOverviewContent() {
               </div>
 
               {/* Status Indicator Chips */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
                 <div className="p-3 rounded-xl bg-[#020817] border border-[#203044]">
                   <span className="text-[11px] text-[#94A3B8] block">Present Shifts</span>
                   <span className="text-lg font-bold text-emerald-400 font-mono mt-0.5 block">
@@ -454,6 +445,18 @@ function DashboardOverviewContent() {
                     {monthly.totalApprovedLeaveDays || 0}d
                   </span>
                   <span className="text-[9px] text-[#64748B] font-mono">Paid Deductions</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#020817] border border-[#203044]">
+                  <span className="text-[11px] text-[#94A3B8] block">Average Salary</span>
+                  <span className="text-lg font-bold text-sky-400 font-mono mt-0.5 block">PKR {avgSalary.toLocaleString()}</span>
+                  <span className="text-[9px] text-[#64748B] font-mono">Per Active Employee</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#020817] border border-[#203044]">
+                  <span className="text-[11px] text-[#94A3B8] block">Attrition YTD</span>
+                  <span className="text-lg font-bold text-emerald-400 font-mono mt-0.5 block">{kpis.attritionRate || 0}%</span>
+                  <span className="text-[9px] text-[#64748B] font-mono">Exits ÷ Avg. Headcount</span>
                 </div>
               </div>
 
@@ -629,7 +632,7 @@ function DashboardOverviewContent() {
                         </span>
                       </td>
                       <td className="p-3 text-[10px] text-[#94A3B8] font-mono">
-                        {att.faceVerified ? 'Camera + Geofence' : 'Web Timestamp'}
+                        {att.faceVerified ? 'Face verified' : 'Web Timestamp'}
                       </td>
                     </tr>
                   ))}
@@ -649,7 +652,7 @@ function DashboardOverviewContent() {
     const today = data.todayAttendance || {};
 
     return (
-      <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="dashboard-overview space-y-6 max-w-[1480px] mx-auto">
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#203044] pb-5">
           <div>
@@ -695,7 +698,7 @@ function DashboardOverviewContent() {
               {aiSummary.map((item, i) => (
                 <li key={i} className="flex items-start gap-2.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] mt-1.5 shrink-0" />
-                  <span className="leading-relaxed text-[#F8FAFC]" dangerouslySetInnerHTML={{ __html: item }} />
+                  <span className="leading-relaxed text-[#F8FAFC]">{item}</span>
                 </li>
               ))}
             </ul>
@@ -917,7 +920,7 @@ function DashboardOverviewContent() {
   const isGraceActive = currentMinutes <= graceMinutes;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="dashboard-overview space-y-6 max-w-[1480px] mx-auto">
       {/* Title & Quick Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#203044] pb-5">
         <div>
@@ -1003,7 +1006,7 @@ function DashboardOverviewContent() {
 
             {isCheckedIn && (
               <span className="text-[10px] text-[#94A3B8] font-mono">
-                • {todayRecord?.faceVerified ? 'Camera + Geofence' : 'Web Timestamp'}
+                • {todayRecord?.faceVerified ? 'Face verified' : 'Web Timestamp'}
               </span>
             )}
           </div>
@@ -1017,7 +1020,7 @@ function DashboardOverviewContent() {
               className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#16A34A] to-[#22C55E] hover:from-[#15803D] hover:to-[#16A34A] text-white font-semibold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/50 transition cursor-pointer"
             >
               <Camera className="w-4 h-4" />
-              <span>Camera & GPS Check-In</span>
+              <span>Face Verification Check-In</span>
             </button>
           ) : !isCheckedOut ? (
             <button

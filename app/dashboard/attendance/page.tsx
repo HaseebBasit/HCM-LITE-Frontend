@@ -154,7 +154,7 @@ export default function AttendanceBoardPage() {
       {/* Header */}
       <PageHeader
         title="Attendance & Punctuality Engine"
-        subtitle="Daily shift roster, 09:15 AM grace rule enforcement, camera + GPS verification, and correction workflows."
+        subtitle="Daily shift roster, 09:15 AM grace rule enforcement, camera face verification, and correction workflows."
         badge="Grace 15m Compliant"
         badgeVariant="emerald"
         actions={
@@ -333,7 +333,7 @@ export default function AttendanceBoardPage() {
                         </Badge>
                       </td>
                       <td className="p-3.5 text-[11px] text-[#94A3B8] font-mono">
-                        {r.faceVerified ? 'Camera + Geofence' : 'Web Timestamp'}
+                        {r.faceVerified ? 'Face verified' : 'Web Timestamp'}
                       </td>
                     </tr>
                   ))

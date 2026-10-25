@@ -48,8 +48,19 @@ export default function DashboardLayout({
     );
   }
 
+  // The API intentionally blocks all normal endpoints until a temporary
+  // password is changed. Keep protected dashboard pages unmounted meanwhile
+  // so they do not issue requests that are guaranteed to receive HTTP 403.
+  if (user.mustChangePassword || user.isTemporaryPassword) {
+    return (
+      <div className="min-h-screen bg-[#020817] text-[#F8FAFC]">
+        <ChangePasswordModal />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#020817] text-[#F8FAFC] font-sans antialiased selection:bg-emerald-600/30 selection:text-emerald-300">
+    <div className="dashboard-shell min-h-screen flex flex-col bg-[#020817] text-[#F8FAFC] font-sans antialiased selection:bg-emerald-600/30 selection:text-emerald-300">
       <Navbar
         onToggleSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
         mobileSidebarOpen={mobileSidebarOpen}
@@ -59,7 +70,7 @@ export default function DashboardLayout({
           isOpen={mobileSidebarOpen}
           onClose={() => setMobileSidebarOpen(false)}
         />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#020817]">
+        <main className="dashboard-main min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

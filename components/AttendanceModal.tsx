@@ -1,123 +1,157 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import type { FaceDetector as MediaPipeFaceDetector } from '@mediapipe/tasks-vision';
 import { apiFetch } from '../lib/api';
 import {
   Camera,
-  MapPin,
   CheckCircle2,
   AlertCircle,
   X,
-  Compass,
-  ScanFace,
-  Sparkles,
 } from 'lucide-react';
 
 interface AttendanceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  officeLocation?: { latitude: number; longitude: number; radiusMeters: number };
 }
+
+const isRoutineVisionRuntimeNotice = (args: unknown[]) => {
+  const message = args.filter((part): part is string => typeof part === 'string').join(' ');
+  return message.includes('OpenGL error checking is disabled') ||
+    message.includes('Created TensorFlow Lite XNNPACK delegate for CPU') ||
+    message.includes('Feedback manager requires a model with a single signature inference');
+};
+
+// MediaPipe's WASM runtime writes these non-actionable startup notices directly
+// to the browser console. Filter only those exact notices while this scanner is
+// active; unrelated warnings and errors continue to reach the console.
+const silenceRoutineVisionNotices = () => {
+  const originalLog = console.log;
+  const originalInfo = console.info;
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  const filteredLog = (...args: unknown[]) => {
+    if (!isRoutineVisionRuntimeNotice(args)) originalLog.apply(console, args);
+  };
+  const filteredWarn = (...args: unknown[]) => {
+    if (!isRoutineVisionRuntimeNotice(args)) originalWarn.apply(console, args);
+  };
+  const filteredInfo = (...args: unknown[]) => {
+    if (!isRoutineVisionRuntimeNotice(args)) originalInfo.apply(console, args);
+  };
+  const filteredError = (...args: unknown[]) => {
+    if (!isRoutineVisionRuntimeNotice(args)) originalError.apply(console, args);
+  };
+
+  console.log = filteredLog;
+  console.info = filteredInfo;
+  console.warn = filteredWarn;
+  console.error = filteredError;
+
+  return () => {
+    if (console.log === filteredLog) console.log = originalLog;
+    if (console.info === filteredInfo) console.info = originalInfo;
+    if (console.warn === filteredWarn) console.warn = originalWarn;
+    if (console.error === filteredError) console.error = originalError;
+  };
+};
 
 export default function AttendanceModal({
   isOpen,
   onClose,
   onSuccess,
-  officeLocation = { latitude: 24.8607, longitude: 67.0011, radiusMeters: 150 },
 }: AttendanceModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [geoCoords, setGeoCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
-  const [simulatedLocation, setSimulatedLocation] = useState(false);
-  const [distance, setDistance] = useState<number | null>(null);
-  const [faceDetected, setFaceDetected] = useState(false);
+  const [faceCount, setFaceCount] = useState(0);
+  const [faceBox, setFaceBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [scannerReady, setScannerReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Haversine calculation on client for live feedback
-  const calculateHaversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371000;
-    const toRad = (a: number) => (a * Math.PI) / 180;
-    const phi1 = toRad(lat1);
-    const phi2 = toRad(lat2);
-    const deltaPhi = toRad(lat2 - lat1);
-    const deltaLambda = toRad(lon2 - lon1);
-
-    const a =
-      Math.sin(deltaPhi / 2) ** 2 +
-      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return Math.round(R * c);
-  };
-
-  // Start Camera
-  useEffect(() => {
-    if (!isOpen) {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-        setStream(null);
-      }
-      return;
-    }
-
-    navigator.mediaDevices
-      ?.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } })
-      .then((s) => {
-        setStream(s);
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-        }
-      })
-      .catch((err) => {
-        console.warn('Camera access error:', err);
-      });
-
-    // Get Geolocation
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setGeoCoords({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-          });
-        },
-        (err) => {
-          console.warn('Geolocation error:', err);
-        },
-        { enableHighAccuracy: true }
-      );
-    }
-
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, [isOpen]);
-
-  // Compute live distance
-  useEffect(() => {
-    const lat = simulatedLocation ? officeLocation.latitude : geoCoords?.lat;
-    const lng = simulatedLocation ? officeLocation.longitude : geoCoords?.lng;
-
-    if (lat !== undefined && lng !== undefined) {
-      const d = calculateHaversine(lat, lng, officeLocation.latitude, officeLocation.longitude);
-      setDistance(d);
-    }
-  }, [geoCoords, simulatedLocation, officeLocation]);
-
-  // Face scanning animation loop
+  // Camera and local face detector are stopped when the modal closes.
   useEffect(() => {
     if (!isOpen) return;
-    const timer = setTimeout(() => {
-      setFaceDetected(true);
-    }, 1200);
+    let active = true;
+    let cameraStream: MediaStream | null = null;
+    let detector: MediaPipeFaceDetector | null = null;
+    let animationFrame = 0;
+    let lastDetectionAt = 0;
+    const restoreConsole = silenceRoutineVisionNotices();
+    setFaceCount(0);
+    setFaceBox(null);
+    setScannerReady(false);
+    setError(null);
+    setSuccess(false);
 
-    return () => clearTimeout(timer);
+    const startCamera = async () => {
+      try {
+        // Load MediaPipe only after the temporary diagnostic filter is active,
+        // since its WASM module captures console methods during initialization.
+        const { FaceDetector, FilesetResolver } = await import('@mediapipe/tasks-vision');
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera access is unavailable in this browser.');
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
+        if (!active) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        cameraStream = stream;
+        const video = videoRef.current;
+        if (!video) throw new Error('Camera preview could not be initialized.');
+        video.srcObject = cameraStream;
+        await video.play();
+
+        const wasm = await FilesetResolver.forVisionTasks('/mediapipe/wasm');
+        const faceDetector = await FaceDetector.createFromOptions(wasm, {
+          baseOptions: { modelAssetPath: '/models/blaze_face_short_range.tflite' },
+          runningMode: 'VIDEO',
+          minDetectionConfidence: 0.6,
+          minSuppressionThreshold: 0.3,
+        });
+        if (!active) {
+          faceDetector.close();
+          return;
+        }
+        detector = faceDetector;
+        setScannerReady(true);
+
+        const scanFrame = () => {
+          if (!active) return;
+          const now = performance.now();
+          const currentVideo = videoRef.current;
+          if (detector && currentVideo && currentVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && now - lastDetectionAt >= 120) {
+            lastDetectionAt = now;
+            const detections = detector.detectForVideo(currentVideo, now).detections;
+            setFaceCount(detections.length);
+            const box = detections.length === 1 ? detections[0].boundingBox : undefined;
+            setFaceBox(box && currentVideo.videoWidth && currentVideo.videoHeight ? {
+              x: (box.originX / currentVideo.videoWidth) * 100,
+              y: (box.originY / currentVideo.videoHeight) * 100,
+              width: (box.width / currentVideo.videoWidth) * 100,
+              height: (box.height / currentVideo.videoHeight) * 100,
+            } : null);
+          }
+          animationFrame = requestAnimationFrame(scanFrame);
+        };
+        animationFrame = requestAnimationFrame(scanFrame);
+      } catch (cameraError: any) {
+        if (active) setError(cameraError?.name === 'NotAllowedError'
+          ? 'Allow camera access to scan for exactly one face.'
+          : cameraError?.message || 'Could not start the face detector.');
+      }
+    };
+
+    startCamera();
+    return () => {
+      active = false;
+      restoreConsole();
+      cancelAnimationFrame(animationFrame);
+      detector?.close();
+      cameraStream?.getTracks().forEach((track) => track.stop());
+      if (videoRef.current) videoRef.current.srcObject = null;
+    };
   }, [isOpen]);
 
   const handleCheckIn = async () => {
@@ -125,17 +159,10 @@ export default function AttendanceModal({
     setSubmitting(true);
 
     try {
-      const lat = simulatedLocation ? officeLocation.latitude : geoCoords?.lat;
-      const lng = simulatedLocation ? officeLocation.longitude : geoCoords?.lng;
-      const accuracy = simulatedLocation ? 15 : geoCoords?.accuracy || 25;
-
       const res = await apiFetch('/attendance/check-in', {
         method: 'POST',
         body: JSON.stringify({
-          latitude: lat,
-          longitude: lng,
-          accuracy,
-          faceVerified: faceDetected,
+          faceVerified: faceCount === 1 && scannerReady,
         }),
       });
 
@@ -157,7 +184,7 @@ export default function AttendanceModal({
 
   if (!isOpen) return null;
 
-  const isWithinRadius = distance !== null && distance <= officeLocation.radiusMeters;
+  const faceVerified = scannerReady && faceCount === 1;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -170,12 +197,12 @@ export default function AttendanceModal({
             </div>
             <div>
               <h3 className="text-xs font-bold text-[#F8FAFC] flex items-center gap-2">
-                <span>AI Biometric Camera & Geofence</span>
+                <span>Face Verification Check-In</span>
                 <span className="text-[10px] bg-emerald-950/70 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-800/50 font-semibold uppercase font-mono">
                   Verified Check-In
                 </span>
               </h3>
-              <p className="text-[11px] text-[#94A3B8]">Strict on-premise biometric & GPS perimeter validation</p>
+              <p className="text-[11px] text-[#94A3B8]">Camera check-in requires exactly one face in frame</p>
             </div>
           </div>
           <button onClick={onClose} className="text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer">
@@ -193,100 +220,53 @@ export default function AttendanceModal({
         {success && (
           <div className="m-4 p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-            <span>Attendance stamped! Biometric and Geofence verified.</span>
+            <span>Face verified. Attendance stamped successfully.</span>
           </div>
         )}
 
         {/* Video & Face Overlay */}
-        <div className="relative bg-[#020817] h-64 flex items-center justify-center overflow-hidden">
+        <div className="relative bg-[#020817] w-full aspect-[4/3] flex items-center justify-center overflow-hidden">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
 
-          {/* Facial Detection Bounding Box Overlay */}
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          {faceBox && (
             <div
-              className={`w-44 h-44 rounded-2xl border-2 transition-all duration-300 flex flex-col justify-between p-2.5 ${
-                faceDetected
-                  ? 'border-[#22C55E] bg-emerald-500/10 shadow-lg shadow-emerald-950/40'
-                  : 'border-dashed border-amber-400/80 animate-pulse'
-              }`}
-            >
-              <div className="flex justify-between items-center text-[10px] font-mono">
-                <span className={faceDetected ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
-                  {faceDetected ? 'FACE DETECTED [1.00]' : 'SCANNING FOR FACE...'}
-                </span>
-                <ScanFace className={`w-3.5 h-3.5 ${faceDetected ? 'text-emerald-400' : 'text-amber-400'}`} />
-              </div>
-              <div className="text-[9px] font-mono text-[#94A3B8] self-end">
-                {faceDetected ? 'CONFIDENCE: 99.4%' : 'HOLD STEADY'}
-              </div>
-            </div>
+              className="absolute pointer-events-none rounded-xl border-2 border-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.45)]"
+              style={{ left: `${faceBox.x}%`, top: `${faceBox.y}%`, width: `${faceBox.width}%`, height: `${faceBox.height}%` }}
+            />
+          )}
+          <div className="absolute left-3 top-3 rounded-lg bg-black/65 px-2.5 py-1.5 text-[10px] font-mono text-white">
+            {!scannerReady ? 'LOADING FACE SCANNER…' : faceCount === 1 ? 'ONE FACE DETECTED' : `${faceCount} FACES — SHOW EXACTLY ONE`}
           </div>
         </div>
 
-        {/* Live Geofence Diagnostics */}
+        {/* Live Face Verification Status */}
         <div className="p-4 bg-[#03101D] border-t border-[#203044] space-y-3">
-          <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="grid grid-cols-1 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-[#0D1928] border border-[#203044]">
-              <span className="text-[10px] text-[#94A3B8] uppercase font-semibold block">Office Geofence</span>
+              <span className="text-[10px] text-[#94A3B8] uppercase font-semibold block">Face Scan</span>
               <div className="font-mono text-[#F8FAFC] text-xs mt-0.5">
-                {distance !== null ? `${distance} meters away` : 'Locating GPS...'}
+                {!scannerReady ? 'Starting local face scanner…' : `${faceCount} face${faceCount === 1 ? '' : 's'} detected`}
               </div>
               <div className="mt-1">
-                {isWithinRadius ? (
+                {faceVerified ? (
                   <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 font-mono">
-                    <CheckCircle2 className="w-3 h-3" /> Within {officeLocation.radiusMeters}m perimeter
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-rose-400 font-bold flex items-center gap-1 font-mono">
-                    <AlertCircle className="w-3 h-3" /> Outside perimeter (max {officeLocation.radiusMeters}m)
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-[#0D1928] border border-[#203044]">
-              <span className="text-[10px] text-[#94A3B8] uppercase font-semibold block">Biometric Scan</span>
-              <div className="font-mono text-[#F8FAFC] text-xs mt-0.5">
-                {faceDetected ? 'Face Verified' : 'Searching for Face...'}
-              </div>
-              <div className="mt-1">
-                {faceDetected ? (
-                  <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 font-mono">
-                    <CheckCircle2 className="w-3 h-3" /> 1 Valid Face Matched
+                    <CheckCircle2 className="w-3 h-3" /> Exactly one face in frame
                   </span>
                 ) : (
                   <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1 font-mono">
-                    <Compass className="w-3 h-3 animate-spin" /> Align Face in Box
+                    <AlertCircle className="w-3 h-3" /> Show exactly one face
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Location Simulator for Demo / Evaluation */}
-          <div className="p-3 rounded-xl bg-[#111E30] border border-[#203044] flex items-center justify-between text-xs">
-            <div>
-              <span className="font-semibold text-[#F8FAFC] block text-[11px]">Evaluation Mode: Location Simulator</span>
-              <span className="text-[10px] text-[#94A3B8]">Simulate physical presence inside Zaitoon Ashraf Park</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSimulatedLocation(!simulatedLocation)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                simulatedLocation
-                  ? 'bg-gradient-to-r from-[#16A34A] to-[#22C55E] text-white shadow-md'
-                  : 'bg-[#0D1928] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#203044]'
-              }`}
-            >
-              {simulatedLocation ? 'Simulated: Inside (0m)' : 'Simulate Campus'}
-            </button>
-          </div>
         </div>
 
         {/* Action Button */}
@@ -299,7 +279,7 @@ export default function AttendanceModal({
           </button>
           <button
             onClick={handleCheckIn}
-            disabled={submitting || !faceDetected || (!isWithinRadius && !simulatedLocation)}
+            disabled={submitting || !faceVerified}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#16A34A] to-[#22C55E] hover:from-[#15803D] hover:to-[#16A34A] text-white font-bold text-xs shadow-lg shadow-emerald-950/50 disabled:opacity-40 transition cursor-pointer"
           >
             {submitting ? (
@@ -307,7 +287,7 @@ export default function AttendanceModal({
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Confirm Biometric Check-In</span>
+              <span>Confirm Face Check-In</span>
               </>
             )}
           </button>

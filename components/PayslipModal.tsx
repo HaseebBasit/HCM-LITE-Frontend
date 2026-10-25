@@ -35,6 +35,9 @@ export default function PayslipModal({
   const dept = payslip.department || 'General';
   const desig = payslip.designation || 'Staff';
   const month = payslip.month || 'Current Period';
+  const isFinalized = payslip.isFinalized === true || payslip.status === 'finalized';
+  const totalWorkingDays = Number(payslip.totalWorkingDays || 0);
+  const eligibleWorkingDays = Number(payslip.eligibleWorkingDays || 0);
 
   const basic = payslip.basicSalary ?? payslip.basic ?? 0;
   const hra = payslip.hra ?? 0;
@@ -46,6 +49,8 @@ export default function PayslipModal({
   const tax = payslip.taxDeduction ?? payslip.monthlyTax ?? 0;
   const totalDeductions = deductions + tax;
   const netPay = payslip.netSalary ?? payslip.netPay ?? Math.max(0, gross - totalDeductions);
+  const annualGross = Number(payslip.annualGross ?? gross * 12);
+  const annualTax = Number(payslip.annualTax ?? tax * 12);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
@@ -57,8 +62,19 @@ export default function PayslipModal({
               Official Salary Slip
             </span>
             <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
-              Verified & Locked
+              {isFinalized ? 'Finalized & Locked' : 'Draft Preview'}
             </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+              <span className="block text-[9px] uppercase font-bold tracking-wide text-slate-400">Annualized gross for tax</span>
+              <span className="mt-1 block font-mono text-sm font-bold text-slate-800">PKR {annualGross.toLocaleString()}</span>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+              <span className="block text-[9px] uppercase font-bold tracking-wide text-slate-400">Annual tax liability</span>
+              <span className="mt-1 block font-mono text-sm font-bold text-rose-700">PKR {annualTax.toLocaleString()}</span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -100,10 +116,25 @@ export default function PayslipModal({
                 {month}
               </div>
               <div className="text-[10px] text-slate-500 mt-0.5 font-semibold">
-                Status: Finalized & Locked
+                Status: {isFinalized ? 'Finalized & Locked' : 'Draft · Awaiting Admin Approval'}
               </div>
             </div>
           </div>
+
+          <section aria-label="Attendance and payroll days" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              ['Working days', totalWorkingDays || '—'],
+              ['Eligible days', eligibleWorkingDays || 0],
+              ['Absent days', Number(payslip.absentDays || 0)],
+              ['Unpaid leave days', Number(payslip.unpaidLeaveDays || 0)],
+              ['Half days', Number(payslip.halfDays || 0)],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                <span className="block text-[9px] uppercase font-bold tracking-wide text-slate-400">{label}</span>
+                <span className="mt-1 block font-mono text-sm font-semibold text-slate-800">{value}</span>
+              </div>
+            ))}
+          </section>
 
           {/* Employee Info Matrix */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
@@ -193,7 +224,7 @@ export default function PayslipModal({
           <div className="p-6 rounded-2xl bg-gradient-to-r from-[#16A34A] to-[#15803D] text-white flex justify-between items-center shadow-lg">
             <div>
               <span className="text-xs uppercase font-extrabold tracking-widest text-emerald-100 block">
-                Net Disbursed Take-Home Salary
+                {isFinalized ? 'Net Disbursed Take-Home Salary' : 'Estimated Net Take-Home Salary'}
               </span>
               <span className="text-[11px] text-emerald-100">
                 Gross Salary - Attendance Deductions - Monthly Statutory Tax
@@ -204,7 +235,7 @@ export default function PayslipModal({
                 PKR {Number(netPay).toLocaleString()}
               </span>
               <span className="text-[10px] text-emerald-100 font-semibold flex items-center gap-1 justify-end mt-0.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Transfer Authorized
+                <CheckCircle2 className="w-3.5 h-3.5" /> {isFinalized ? 'Finalized for Transfer' : 'Pending Admin Finalization'}
               </span>
             </div>
           </div>

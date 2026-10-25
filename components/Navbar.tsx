@@ -107,7 +107,7 @@ export default function Navbar({ onToggleSidebar, mobileSidebarOpen }: NavbarPro
   };
 
   return (
-    <header className="h-16 border-b border-[#203044] bg-[#03101D] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+    <header className="h-[72px] border-b border-[#203044] bg-[#030d18] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40">
       {/* Left: Mobile Toggle & Organization Name */}
       <div className="flex items-center gap-3">
         <button
@@ -134,12 +134,12 @@ export default function Navbar({ onToggleSidebar, mobileSidebarOpen }: NavbarPro
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-[10px] text-[#94A3B8] font-mono hidden sm:inline-block">
-                Zaitoon Ashraf IT Park
+                {user?.department || 'People Operations'}
               </span>
               <span className="hidden sm:inline-block text-[#203044]">•</span>
               <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
-                Live Twin Engine
+                HCM Lite Workspace
               </span>
             </div>
           </div>
@@ -158,6 +158,7 @@ export default function Navbar({ onToggleSidebar, mobileSidebarOpen }: NavbarPro
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
+            aria-expanded={showNotifications}
             className="p-2 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#111E30] border border-[#203044] transition relative cursor-pointer"
             aria-label="View notifications"
           >
@@ -170,7 +171,7 @@ export default function Navbar({ onToggleSidebar, mobileSidebarOpen }: NavbarPro
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-[#0D1928] border border-[#203044] shadow-2xl p-4 z-50 text-xs">
+            <div className="absolute right-0 mt-2 w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl bg-[#0D1928] border border-[#203044] shadow-2xl p-4 z-50 text-xs">
               <div className="flex items-center justify-between pb-3 border-b border-[#203044] mb-3">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#F8FAFC]">System Notifications</span>

@@ -170,7 +170,9 @@ export default function EmployeesPage() {
           else if (h.includes('dept') || h.includes('department')) rowObj.department = parts[idx];
           else if (h.includes('desig') || h.includes('designation')) rowObj.designation = parts[idx];
           else if (h.includes('phone')) rowObj.phone = parts[idx];
-          else if (h.includes('salary') || h.includes('basic')) rowObj.basicSalary = Number(parts[idx]) || 50000;
+          else if (h.includes('salary') || h.includes('basic')) rowObj.basicSalary = Number(parts[idx]);
+          else if (h.includes('joining')) rowObj.joiningDate = parts[idx];
+          else if (h.includes('employee code') || h.includes('employee id') || h === 'code' || h === 'id') rowObj.employeeCode = parts[idx];
         });
         if (rowObj.name || rowObj.email) {
           rows.push(rowObj);
@@ -185,7 +187,7 @@ export default function EmployeesPage() {
         });
         if (res.success) {
           setCsvDryReport(res.report);
-          setCsvRowsToCommit(rows);
+          setCsvRowsToCommit(res.report.preview || []);
         }
       } catch (err: any) {
         setError(err.message);
@@ -632,7 +634,7 @@ export default function EmployeesPage() {
                 {csvDryReport.errors?.length > 0 && (
                   <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800/40 text-rose-300 text-[11px] max-h-32 overflow-y-auto">
                     {csvDryReport.errors.map((e: any, i: number) => (
-                      <div key={i}>Row {e.row}: {e.errors.join(', ')} ({e.data?.name || e.data?.email})</div>
+                      <div key={i}>Row {e.row}, {e.field}: {e.reason}</div>
                     ))}
                   </div>
                 )}

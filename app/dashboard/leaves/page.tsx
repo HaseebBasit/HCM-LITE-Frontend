@@ -126,8 +126,8 @@ function LeaveContent() {
   const handleReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewLeaveItem) return;
-    if (!reviewComment.trim()) {
-      setError('Mandatory review comment is required by HR policy.');
+    if (reviewComment.trim().length < 2) {
+      setError('Please add at least 2 characters of review remarks.');
       return;
     }
 
@@ -138,7 +138,7 @@ function LeaveContent() {
         method: 'PUT',
         body: JSON.stringify({
           decision: reviewDecision,
-          comment: reviewComment,
+          reviewComment: reviewComment.trim(),
         }),
       });
 
@@ -479,6 +479,8 @@ function LeaveContent() {
                 </label>
                 <textarea
                   required
+                  minLength={2}
+                  maxLength={1000}
                   rows={2}
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}

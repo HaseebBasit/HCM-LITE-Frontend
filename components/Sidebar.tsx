@@ -86,7 +86,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* Section Label */}
-        <div className="px-2.5 py-1 text-[10px] font-mono font-semibold text-[#94A3B8] uppercase tracking-wider flex items-center justify-between">
+        <div className="px-2.5 py-1 text-[10px] font-mono font-semibold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
           <span>
             {role === 'admin'
               ? 'Administration Hub'
@@ -117,7 +117,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 onClick={onClose}
                 className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all group ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#16A34A] to-[#15803D] text-white shadow-md shadow-emerald-950/50 font-semibold'
+                    ? 'bg-gradient-to-r from-[#117b40] to-[#13a653] text-white shadow-md shadow-emerald-950/50 font-semibold'
                     : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#0D1928]'
                 }`}
               >
@@ -144,7 +144,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
               RBAC SCOPED
             </span>
-            <span className="text-[10px] font-mono text-[#64748B]">SMIT-2026</span>
+            <span className="text-[10px] font-mono text-[#64748B]">HCM LITE</span>
           </div>
           <div className="mt-2 flex items-center justify-between pt-2 border-t border-[#203044]/60">
             <div>
@@ -171,7 +171,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-[#03101D] border-r border-[#203044] shrink-0 flex-col">
+      <aside className="hidden lg:flex w-[264px] bg-[#03101D] border-r border-[#203044] shrink-0 flex-col">
         {sidebarContent}
       </aside>
 

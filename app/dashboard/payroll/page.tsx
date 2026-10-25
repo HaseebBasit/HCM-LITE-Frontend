@@ -35,6 +35,7 @@ export default function PayrollPage() {
     new Date().toISOString().substring(0, 7)
   );
   const [currentPayroll, setCurrentPayroll] = useState<any>(null);
+  const payrollRecords = currentPayroll?.records || currentPayroll?.slips || currentPayroll?.employees || [];
   const [myPayslips, setMyPayslips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -236,12 +237,14 @@ export default function PayrollPage() {
               </div>
 
               <div className="p-5 rounded-2xl bg-[#0D1928] border border-[#203044] shadow-sm">
-                <span className="text-xs font-medium text-[#94A3B8]">Total Net Disbursed</span>
+                <span className="text-xs font-medium text-[#94A3B8]">
+                  {currentPayroll.status === 'finalized' ? 'Total Net Disbursed' : 'Estimated Net Pay'}
+                </span>
                 <div className="text-2xl font-bold text-emerald-400 font-mono mt-2">
                   PKR {(currentPayroll.totalNet || 0).toLocaleString()}
                 </div>
                 <span className="text-[10px] text-emerald-400 font-mono mt-1 block">
-                  {currentPayroll.status === 'finalized' ? '✓ Locked & Finalized' : 'Draft Calculation'}
+                  {currentPayroll.status === 'finalized' ? '✓ Locked & Finalized' : 'Draft · Not yet disbursed'}
                 </span>
               </div>
             </div>
@@ -272,7 +275,8 @@ export default function PayrollPage() {
                     Staff Payroll Breakdown — {selectedMonth}
                   </h3>
                   <span className="text-[10px] text-[#94A3B8] font-mono">
-                    {(currentPayroll.employees || []).length} Staff Accounts Included
+                    {payrollRecords.length} Staff {payrollRecords.length === 1 ? 'Account' : 'Accounts'} Included
+                    {currentPayroll.totalWorkingDays ? ` · ${currentPayroll.totalWorkingDays} working days` : ''}
                   </span>
                 </div>
                 <Badge variant={currentPayroll.status === 'finalized' ? 'success' : 'warning'}>
@@ -289,6 +293,11 @@ export default function PayrollPage() {
                       <th className="p-3.5">HRA (40%)</th>
                       <th className="p-3.5">Medical (10%)</th>
                       <th className="p-3.5">Gross</th>
+                      <th className="p-3.5">Daily Rate</th>
+                      <th className="p-3.5">Eligible Days</th>
+                      <th className="p-3.5">Absent</th>
+                      <th className="p-3.5">Unpaid Leave</th>
+                      <th className="p-3.5">Half Days</th>
                       <th className="p-3.5">Attendance Ded.</th>
                       <th className="p-3.5">Pakistan Tax</th>
                       <th className="p-3.5">Net Pay</th>
@@ -296,16 +305,17 @@ export default function PayrollPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#203044]">
-                    {(currentPayroll.employees || []).map((emp: any, idx: number) => (
+                    {payrollRecords.map((emp: any, idx: number) => (
                       <tr key={idx} className="hover:bg-[#111E30]/50 transition">
                         <td className="p-3.5">
-                          <span className="font-semibold text-[#F8FAFC] block">{emp.name}</span>
+                          <span className="font-semibold text-[#F8FAFC] block">{emp.employeeName || emp.name || 'Staff member'}</span>
                           <span className="text-[10px] text-emerald-400 font-mono">
-                            {emp.employeeId || 'ID-PENDING'}
+                            {emp.employeeId || emp.employeeCode || 'ID-PENDING'}
                           </span>
+                          <span className="block text-[10px] text-[#64748B]">{emp.department || 'General'} · {emp.designation || 'Staff'}</span>
                         </td>
                         <td className="p-3.5 font-mono text-[#F8FAFC]">
-                          PKR {(emp.basicSalary || 0).toLocaleString()}
+                          PKR {Number(emp.basic ?? emp.basicSalary ?? 0).toLocaleString()}
                         </td>
                         <td className="p-3.5 font-mono text-[#94A3B8]">
                           PKR {(emp.hra || 0).toLocaleString()}
@@ -314,21 +324,32 @@ export default function PayrollPage() {
                           PKR {(emp.medical || 0).toLocaleString()}
                         </td>
                         <td className="p-3.5 font-mono text-[#F8FAFC] font-semibold">
-                          PKR {(emp.grossSalary || 0).toLocaleString()}
+                          PKR {Number(emp.gross ?? emp.grossSalary ?? 0).toLocaleString()}
                         </td>
+                        <td className="p-3.5 font-mono text-[#94A3B8]">PKR {Number(emp.dailyRate ?? 0).toLocaleString()}</td>
+                        <td className="p-3.5 font-mono text-[#94A3B8]">{Number(emp.eligibleWorkingDays ?? 0)} / {Number(currentPayroll.totalWorkingDays ?? 0)}</td>
+                        <td className="p-3.5 font-mono text-amber-400">{Number(emp.absentDays ?? 0)}</td>
+                        <td className="p-3.5 font-mono text-amber-400">{Number(emp.unpaidLeaveDays ?? 0)}</td>
+                        <td className="p-3.5 font-mono text-amber-400">{Number(emp.halfDays ?? 0)}</td>
                         <td className="p-3.5 font-mono text-amber-400">
-                          - PKR {(emp.attendanceDeduction || 0).toLocaleString()}
+                          - PKR {Number(emp.deductions ?? emp.attendanceDeduction ?? 0).toLocaleString()}
                         </td>
                         <td className="p-3.5 font-mono text-rose-400">
-                          - PKR {(emp.taxDeduction || 0).toLocaleString()}
+                          - PKR {Number(emp.monthlyTax ?? emp.taxDeduction ?? 0).toLocaleString()}
                         </td>
                         <td className="p-3.5 font-mono text-emerald-400 font-bold">
-                          PKR {(emp.netSalary || 0).toLocaleString()}
+                          PKR {Number(emp.netPay ?? emp.netSalary ?? 0).toLocaleString()}
                         </td>
                         <td className="p-3.5 text-right">
                           <button
                             onClick={() => {
-                              setSelectedPayslip({ ...emp, month: currentPayroll.month });
+                              setSelectedPayslip({
+                                ...emp,
+                                month: currentPayroll.month,
+                                totalWorkingDays: currentPayroll.totalWorkingDays,
+                                status: currentPayroll.status,
+                                isFinalized: currentPayroll.isFinalized || currentPayroll.status === 'finalized',
+                              });
                               setShowPayslipModal(true);
                             }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111E30] hover:bg-[#203044] text-emerald-400 border border-[#203044] text-[11px] font-semibold cursor-pointer"
@@ -339,6 +360,13 @@ export default function PayrollPage() {
                         </td>
                       </tr>
                     ))}
+                    {payrollRecords.length === 0 && (
+                      <tr>
+                        <td colSpan={14} className="p-10 text-center text-sm text-[#94A3B8]">
+                          No eligible staff records were saved in this run. Recalculate the draft after confirming staff have valid salaries and joining dates.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -371,7 +399,7 @@ export default function PayrollPage() {
                       <div>
                         <span className="font-bold text-[#F8FAFC] block">{r.month} Run</span>
                         <span className="text-[10px] text-[#94A3B8] font-mono">
-                          PKR {(r.totalNet || 0).toLocaleString()} Total Net Disbursed
+                          PKR {(r.totalNet ?? r.totalNetPaid ?? 0).toLocaleString()} {r.status === 'finalized' ? 'Net Disbursed' : 'Estimated Net Pay'}
                         </span>
                       </div>
                     </div>
@@ -427,21 +455,21 @@ export default function PayrollPage() {
                     <tr key={i} className="hover:bg-[#111E30]/50 transition">
                       <td className="p-3.5 font-mono text-[#F8FAFC] font-semibold">{ps.month}</td>
                       <td className="p-3.5 font-mono text-[#F8FAFC]">
-                        PKR {(ps.grossSalary || 0).toLocaleString()}
+                        PKR {Number(ps.gross ?? ps.grossSalary ?? 0).toLocaleString()}
                       </td>
                       <td className="p-3.5 font-mono text-amber-400">
-                        - PKR {(ps.attendanceDeduction || 0).toLocaleString()}
+                        - PKR {Number(ps.deductions ?? ps.attendanceDeduction ?? 0).toLocaleString()}
                       </td>
                       <td className="p-3.5 font-mono text-rose-400">
-                        - PKR {(ps.taxDeduction || 0).toLocaleString()}
+                        - PKR {Number(ps.monthlyTax ?? ps.taxDeduction ?? 0).toLocaleString()}
                       </td>
                       <td className="p-3.5 font-mono text-emerald-400 font-bold">
-                        PKR {(ps.netSalary || 0).toLocaleString()}
+                        PKR {Number(ps.netPay ?? ps.netSalary ?? 0).toLocaleString()}
                       </td>
                       <td className="p-3.5 text-right">
                         <button
                           onClick={() => {
-                            setSelectedPayslip(ps);
+                            setSelectedPayslip({ ...ps, status: 'finalized', isFinalized: true });
                             setShowPayslipModal(true);
                           }}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold transition cursor-pointer"
@@ -465,6 +493,7 @@ export default function PayrollPage() {
           isOpen={showPayslipModal}
           onClose={() => setShowPayslipModal(false)}
           payslip={selectedPayslip}
+          companyName={user?.company?.name || user?.company?.companyName || 'Saylani Enterprises'}
         />
       )}
     </div>

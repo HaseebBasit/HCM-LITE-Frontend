@@ -26,8 +26,8 @@ export default function ChangePasswordModal() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (newPassword.length < 12) {
+      setError('Password must be at least 12 characters long.');
       return;
     }
 
@@ -108,7 +108,8 @@ export default function ChangePasswordModal() {
                 required
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
+                minLength={12}
+                placeholder="Minimum 12 characters"
                 className="w-full bg-[#020817] border border-[#203044] focus:border-[#16A34A] rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-[#F8FAFC] focus:outline-none"
               />
             </div>

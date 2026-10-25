@@ -7,14 +7,11 @@ import { PageHeader } from '../../../components/ui/PageHeader';
 import {
   Building2,
   Clock,
-  MapPin,
   CalendarDays,
   Save,
   CheckCircle2,
   AlertCircle,
-  Shield,
   ShieldAlert,
-  Compass,
 } from 'lucide-react';
 
 export default function CompanySettingsClient() {
@@ -26,7 +23,7 @@ export default function CompanySettingsClient() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'hours' | 'geofence' | 'quotas'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'hours' | 'quotas'>('profile');
 
   // Form Fields
   const [name, setName] = useState('');
@@ -34,9 +31,6 @@ export default function CompanySettingsClient() {
   const [workEnd, setWorkEnd] = useState('18:00');
   const [gracePeriodMinutes, setGracePeriodMinutes] = useState(15);
   const [halfDayHoursThreshold, setHalfDayHoursThreshold] = useState(5.0);
-  const [latitude, setLatitude] = useState(24.8607);
-  const [longitude, setLongitude] = useState(67.0011);
-  const [radiusMeters, setRadiusMeters] = useState(150);
   const [annualQuota, setAnnualQuota] = useState(14);
   const [sickQuota, setSickQuota] = useState(8);
   const [casualQuota, setCasualQuota] = useState(10);
@@ -52,9 +46,6 @@ export default function CompanySettingsClient() {
         setWorkEnd(c.workHours?.end || '18:00');
         setGracePeriodMinutes(c.gracePeriodMinutes ?? 15);
         setHalfDayHoursThreshold(c.halfDayHoursThreshold ?? 5.0);
-        setLatitude(c.officeLocation?.latitude ?? 24.8607);
-        setLongitude(c.officeLocation?.longitude ?? 67.0011);
-        setRadiusMeters(c.officeLocation?.radiusMeters ?? 150);
         setAnnualQuota(c.leaveQuotas?.annual ?? 14);
         setSickQuota(c.leaveQuotas?.sick ?? 8);
         setCasualQuota(c.leaveQuotas?.casual ?? 10);
@@ -86,7 +77,6 @@ export default function CompanySettingsClient() {
           workHours: { start: workStart, end: workEnd },
           gracePeriodMinutes,
           halfDayHoursThreshold,
-          officeLocation: { latitude, longitude, radiusMeters },
           leaveQuotas: { annual: annualQuota, sick: sickQuota, casual: casualQuota },
         }),
       });
@@ -128,7 +118,7 @@ export default function CompanySettingsClient() {
       {/* Header */}
       <PageHeader
         title="Company Settings & Enterprise Parameters"
-        subtitle="Manage global working shift hours, 09:15 AM grace thresholds, Zaitoon Ashraf Park geofence coordinates, and statutory quotas."
+        subtitle="Manage organization profile, working hours, attendance grace rules, and statutory leave quotas."
         badge="Master Admin Protected"
         badgeVariant="emerald"
         actions={
@@ -182,18 +172,6 @@ export default function CompanySettingsClient() {
         >
           <Clock className="w-4 h-4" />
           <span>Shift Timings & Grace</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('geofence')}
-          className={`py-3 px-5 border-b-2 flex items-center gap-2 cursor-pointer transition ${
-            activeTab === 'geofence'
-              ? 'border-emerald-500 text-emerald-400'
-              : 'border-transparent text-[#94A3B8] hover:text-[#F8FAFC]'
-          }`}
-        >
-          <MapPin className="w-4 h-4" />
-          <span>Office Geofence</span>
         </button>
 
         <button
@@ -308,64 +286,7 @@ export default function CompanySettingsClient() {
         </div>
       )}
 
-      {/* ================= TAB 3: OFFICE GEOFENCE ================= */}
-      {activeTab === 'geofence' && (
-        <div className="p-6 rounded-2xl bg-[#0D1928] border border-[#203044] shadow-sm space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#203044]">
-            <MapPin className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-sm font-bold text-[#F8FAFC]">Zaitoon Ashraf IT Park Geofence Coordinates</h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div>
-              <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
-                Campus Latitude
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={latitude}
-                onChange={(e) => setLatitude(Number(e.target.value))}
-                className="w-full bg-[#020817] border border-[#203044] rounded-xl px-3.5 py-2.5 text-xs text-[#F8FAFC] font-mono focus:outline-none focus:border-[#16A34A]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
-                Campus Longitude
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={longitude}
-                onChange={(e) => setLongitude(Number(e.target.value))}
-                className="w-full bg-[#020817] border border-[#203044] rounded-xl px-3.5 py-2.5 text-xs text-[#F8FAFC] font-mono focus:outline-none focus:border-[#16A34A]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[#F8FAFC] mb-1.5">
-                Allowed Radius (Meters)
-              </label>
-              <input
-                type="number"
-                min={10}
-                max={5000}
-                value={radiusMeters}
-                onChange={(e) => setRadiusMeters(Number(e.target.value))}
-                className="w-full bg-[#020817] border border-[#203044] rounded-xl px-3.5 py-2.5 text-xs text-[#F8FAFC] font-mono focus:outline-none focus:border-[#16A34A]"
-              />
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-[#020817] border border-[#203044] text-[11px] text-[#94A3B8]">
-            <span className="font-bold text-[#F8FAFC] block">Haversine Geofence Verification:</span>
-            Mobile and web check-ins within {radiusMeters}m of ({latitude}, {longitude}) qualify as verified on-premise check-ins.
-          </div>
-        </div>
-      )}
-
-      {/* ================= TAB 4: STATUTORY QUOTAS ================= */}
+      {/* ================= TAB 3: STATUTORY QUOTAS ================= */}
       {activeTab === 'quotas' && (
         <div className="p-6 rounded-2xl bg-[#0D1928] border border-[#203044] shadow-sm space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-[#203044]">

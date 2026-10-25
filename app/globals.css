@@ -45,3 +45,206 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #334b66;
 }
+
+/* First-run setup form */
+.setup-shell {
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(16, 185, 129, 0.08), transparent 34%),
+    #f3f6f4;
+}
+
+.setup-section {
+  scroll-margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, #ffffff, #fbfdfc);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.035);
+}
+
+.setup-shell .setup-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 1.15rem;
+  padding: 0 0 0.85rem;
+  border-color: #e8eef0;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.setup-shell .setup-section h2 svg {
+  width: 2rem;
+  height: 2rem;
+  padding: 0.45rem;
+  border-radius: 0.7rem;
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.setup-shell .setup-section label {
+  display: block;
+  margin: 0 0 0.45rem;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.setup-shell .setup-section input {
+  width: 100%;
+  min-height: 2.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 0.7rem 0.85rem;
+  color: #0f172a;
+  font-size: 0.9rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.setup-shell .setup-section input::placeholder {
+  color: #94a3b8;
+}
+
+.setup-shell .setup-section input:focus {
+  border-color: #10b981;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.13);
+}
+
+.setup-step {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.8rem;
+  padding: 0.55rem 0.65rem;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.setup-step span {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.setup-step:hover,
+.setup-step:focus-visible {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+  outline: none;
+}
+
+.setup-step:hover span,
+.setup-step:focus-visible span {
+  background: #059669;
+  color: #fff;
+}
+
+.setup-notice.setup-error {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #9f1239;
+}
+
+.setup-notice.setup-success {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+/* Workspace dashboard */
+.dashboard-shell {
+  background: #020817;
+}
+
+.dashboard-main {
+  background:
+    radial-gradient(ellipse at 8% 0%, rgba(16, 185, 129, 0.055), transparent 32%),
+    radial-gradient(ellipse at 100% 18%, rgba(59, 130, 246, 0.035), transparent 30%),
+    #020817;
+  scrollbar-gutter: stable;
+}
+
+.dashboard-overview {
+  width: 100%;
+  padding-bottom: 2.5rem;
+}
+
+.dashboard-overview > div[class*="space-y-6"] > div[class*="border-b"]:first-child {
+  border-color: rgba(71, 85, 105, 0.42);
+  padding: 0.25rem 0 1.25rem;
+}
+
+.dashboard-overview h1 {
+  letter-spacing: -0.035em;
+}
+
+.dashboard-main [class*="bg-[#0D1928]"][class*="rounded-2xl"] {
+  border-color: rgba(71, 85, 105, 0.48);
+  background: linear-gradient(145deg, rgba(15, 29, 45, 0.98), rgba(8, 20, 33, 0.98));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.dashboard-main [class*="bg-[#0D1928]"][class*="rounded-2xl"]:hover {
+  border-color: rgba(52, 211, 153, 0.3);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-main [class*="bg-[#020817]"][class*="rounded-xl"] {
+  background: rgba(2, 10, 20, 0.78);
+  border-color: rgba(51, 65, 85, 0.7);
+}
+
+.dashboard-overview input,
+.dashboard-overview select {
+  max-width: 100%;
+}
+
+.dashboard-overview button,
+.dashboard-overview a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 639px) {
+  .dashboard-main {
+    padding: 1rem;
+  }
+
+  .dashboard-overview {
+    padding-bottom: 1.5rem;
+  }
+
+  .dashboard-overview > div[class*="space-y-6"] > div[class*="border-b"]:first-child {
+    align-items: stretch;
+  }
+
+  .dashboard-overview h1 {
+    font-size: 1.45rem;
+    line-height: 1.25;
+  }
+}
+
+@media (min-width: 640px) {
+  .setup-section {
+    padding: 1.5rem;
+  }
+}

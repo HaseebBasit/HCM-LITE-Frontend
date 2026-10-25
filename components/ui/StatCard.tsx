@@ -35,27 +35,27 @@ export function StatCard({
   };
 
   return (
-    <div className="p-4 sm:p-5 rounded-xl bg-[#0D1928] border border-[#203044] hover:border-[#16A34A]/40 transition duration-200 relative overflow-hidden group shadow-sm">
+    <div className="relative min-h-[188px] overflow-hidden rounded-2xl border border-[#203044] bg-gradient-to-br from-[#0e1d2a] to-[#07121e] p-5 shadow-[0_14px_32px_rgba(0,0,0,.12)] transition duration-200 hover:border-emerald-500/40">
       <div className="flex justify-between items-start">
-        <span className="text-xs font-medium text-[#94A3B8] tracking-wide">{title}</span>
+        <span className="text-sm font-medium tracking-wide text-slate-300">{title}</span>
         <div
-          className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 transition ${iconBgStyles[variant]}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition ${iconBgStyles[variant]}`}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="h-[18px] w-[18px]" />
         </div>
       </div>
 
       <div className="flex items-baseline gap-3 mt-3">
-        <span className="text-2xl sm:text-3xl font-bold text-[#F8FAFC] font-mono tracking-tight">
+        <span className="text-3xl font-semibold tracking-tight text-[#F8FAFC] sm:text-[34px]">
           {value}
         </span>
         {chart && <div className="ml-auto">{chart}</div>}
       </div>
 
       {(subtitle || tag) && (
-        <div className="flex items-center justify-between text-[11px] text-[#94A3B8] mt-3 pt-2.5 border-t border-[#203044]/70">
+        <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[#94A3B8]">
           <span>{subtitle}</span>
-          {tag && <span className="font-mono text-emerald-400 font-medium">{tag}</span>}
+          {tag && <span className="rounded-full border border-emerald-800/50 bg-emerald-950/50 px-2 py-1 text-[10px] font-medium text-emerald-300">{tag}</span>}
         </div>
       )}
     </div>
